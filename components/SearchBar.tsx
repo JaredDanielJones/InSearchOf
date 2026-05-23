@@ -2,18 +2,14 @@
 
 interface SearchBarProps {
   query: string;
-  location: string;
   onQueryChange: (q: string) => void;
-  onLocationChange: (loc: string) => void;
   onSearch: () => void;
   isLoading: boolean;
 }
 
 export default function SearchBar({
   query,
-  location,
   onQueryChange,
-  onLocationChange,
   onSearch,
   isLoading,
 }: SearchBarProps) {
@@ -22,7 +18,7 @@ export default function SearchBar({
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
+    <div className="flex gap-2">
       {/* Keyword input */}
       <div className="relative flex-1">
         <svg
@@ -43,38 +39,7 @@ export default function SearchBar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="What are you looking for? (e.g. lawnmower, shelf)"
-          className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
-        />
-      </div>
-
-      {/* Location input */}
-      <div className="relative sm:w-64">
-        <svg
-          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-          />
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-          />
-        </svg>
-        <input
-          type="text"
-          value={location}
-          onChange={(e) => onLocationChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Location (e.g. Seattle, Bay Area)"
+          placeholder="What are you looking for? (e.g. lawnmower, shelf, bike…)"
           className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
         />
       </div>

@@ -1,12 +1,12 @@
 import Parser from "rss-parser";
 import type { Listing } from "@/types/listing";
-import { CITIES_MAP, DEFAULT_CITIES, VALID_CITY_KEYS } from "./cities";
+import { CITIES_MAP } from "./cities";
 import { stripHtml } from "./utils";
 
 // ── Parser setup ────────────────────────────────────────────────────────────
 
 const parser = new Parser({
-  timeout: 8000,
+  timeout: 15000, // Longer timeout for national search
   headers: {
     "User-Agent":
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -45,10 +45,35 @@ function setCached(
 
 // ── URL builder ─────────────────────────────────────────────────────────────
 
-function buildUrl(cityKey: string, query: string): string {
+/**
+ * Builds the national Craigslist for-sale RSS URL.
+ * Using www.craigslist.org covers ALL US regions — big cities and small towns.
+ */
+function buildNationalUrl(query: string): string {
   const params = new URLSearchParams({ format: "rss" });
   if (query.trim()) params.set("query", query.trim());
-  return `https://${cityKey}.craigslist.org/search/wan?${params.toString()}`;
+  return `https://www.craigslist.org/search/sss?${params.toString()}`;
+}
+
+// ── City extraction ──────────────────────────────────────────────────────────
+
+/**
+ * Extracts the Craigslist subdomain from a listing URL so we can show
+ * a city label even for markets not in our CITIES_MAP.
+ */
+function extractCityFromUrl(url: string): { key: string; label: string } {
+  const match = url.match(/https?:\/\/([^.]+)\.craigslist\.org/);
+  const key = match ? match[1] : "unknown";
+  const cityConfig = CITIES_MAP[key];
+  // Fall back to prettifying the subdomain if it's not in our known map
+  const label =
+    cityConfig?.label ??
+    key
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .split(/(?=[A-Z])/)
+      .join(" ")
+      .replace(/^./, (s) => s.toUpperCase());
+  return { key, label };
 }
 
 // ── ID generation ────────────────────────────────────────────────────────────
@@ -56,93 +81,57 @@ function buildUrl(cityKey: string, query: string): string {
 function generateId(cityKey: string, link: string): string {
   const postIdMatch = link.match(/\/(\d{10,})\.html/);
   if (postIdMatch) return `${cityKey}-${postIdMatch[1]}`;
-  // Fallback: use last URL path segment
-  const segment = link.split("/").pop()?.replace(".html", "") ?? String(Date.now());
+  const segment =
+    link.split("/").pop()?.replace(".html", "") ?? String(Date.now());
   return `${cityKey}-${segment}`;
 }
 
-// ── Single city fetch ────────────────────────────────────────────────────────
+// ── National fetch ───────────────────────────────────────────────────────────
 
-async function parseFeed(
-  cityKey: string,
-  query: string
-): Promise<{ listings: Listing[]; error?: string }> {
-  const city = CITIES_MAP[cityKey];
-  if (!city) return { listings: [], error: `Unknown city: ${cityKey}` };
-
-  const url = buildUrl(cityKey, query);
-
-  try {
-    const feed = await parser.parseURL(url);
-    const listings: Listing[] = (feed.items ?? []).map((item) => ({
-      id: generateId(cityKey, item.link ?? ""),
-      title: item.title?.trim() ?? "(no title)",
-      link: item.link ?? "",
-      description: stripHtml(
-        item.content ?? item.contentSnippet ?? ""
-      ),
-      pubDate: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
-      city: cityKey,
-      cityLabel: city.label,
-    }));
-    return { listings };
-  } catch (err) {
-    console.error(`[craigslist] Failed to fetch ${cityKey}:`, err);
-    return { listings: [], error: String(err) };
-  }
-}
-
-// ── Batch fetch all cities ───────────────────────────────────────────────────
-
-const BATCH_SIZE = 5;
-const BATCH_DELAY_MS = 300;
-
+/**
+ * Fetches for-sale listings from Craigslist's national search.
+ * One request covers all US markets — from major metros to small towns.
+ */
 export async function fetchAllCities(
-  cityKeys: string[],
+  _cityKeys: string[], // kept for API compatibility; national search ignores cities
   query: string
 ): Promise<{ listings: Listing[]; failed: string[] }> {
-  // Validate keys
-  const validKeys = cityKeys.filter((k) => VALID_CITY_KEYS.has(k));
-
-  // Cache key based on sorted cities + query
-  const cacheKey = [...validKeys].sort().join(",") + "|" + query;
+  const cacheKey = "national|" + query.trim().toLowerCase();
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const allListings: Listing[] = [];
-  const failed: string[] = [];
+  const url = buildNationalUrl(query);
 
-  for (let i = 0; i < validKeys.length; i += BATCH_SIZE) {
-    const batch = validKeys.slice(i, i + BATCH_SIZE);
+  try {
+    const feed = await parser.parseURL(url);
 
-    const batchResults = await Promise.allSettled(
-      batch.map((key) => parseFeed(key, query))
+    const listings: Listing[] = (feed.items ?? []).map((item) => {
+      const { key, label } = extractCityFromUrl(item.link ?? "");
+      return {
+        id: generateId(key, item.link ?? ""),
+        title: item.title?.trim() ?? "(no title)",
+        link: item.link ?? "",
+        description: stripHtml(
+          item.content ?? item.contentSnippet ?? ""
+        ),
+        pubDate: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
+        city: key,
+        cityLabel: label,
+      };
+    });
+
+    // Sort newest first
+    listings.sort(
+      (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
     );
 
-    for (let j = 0; j < batchResults.length; j++) {
-      const result = batchResults[j];
-      if (result.status === "fulfilled") {
-        allListings.push(...result.value.listings);
-        if (result.value.error) failed.push(batch[j]);
-      } else {
-        failed.push(batch[j]);
-      }
-    }
-
-    // Delay between batches (not after the last one)
-    if (i + BATCH_SIZE < validKeys.length) {
-      await new Promise((resolve) => setTimeout(resolve, BATCH_DELAY_MS));
-    }
+    const result = { listings, failed: [] };
+    setCached(cacheKey, result);
+    return result;
+  } catch (err) {
+    console.error("[craigslist] Failed to fetch national listings:", err);
+    return { listings: [], failed: ["national"] };
   }
-
-  // Sort newest first
-  allListings.sort(
-    (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-  );
-
-  const result = { listings: allListings, failed };
-  setCached(cacheKey, result);
-  return result;
 }
 
-export { DEFAULT_CITIES, VALID_CITY_KEYS };
+export { DEFAULT_CITIES, VALID_CITY_KEYS } from "./cities";
