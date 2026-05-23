@@ -39,7 +39,7 @@ export default function SearchBar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="What do buyers want? (e.g. lawnmower, shelf, bike…)"
+          placeholder="Search for buyers… (e.g. lawnmower, guitar, bike)"
           className="w-full pl-9 pr-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent shadow-sm"
         />
       </div>

@@ -52,12 +52,13 @@ export default function ListingCard({
       {/* Top row: badges + date */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Region badge */}
+          {/* Source badge — subreddit or city */}
           <span
             className={`text-xs font-semibold px-2 py-0.5 rounded-full ${regionColor}`}
           >
-            {city?.region.charAt(0).toUpperCase() + (city?.region.slice(1) ?? "")} •{" "}
-            {listing.cityLabel}
+            {city
+              ? `${city.region.charAt(0).toUpperCase()}${city.region.slice(1)} • ${listing.cityLabel}`
+              : listing.cityLabel}
           </span>
 
           {/* NEW badge */}
@@ -107,7 +108,7 @@ export default function ListingCard({
               d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
             />
           </svg>
-          View on Craigslist
+          View post
         </a>
 
         <button

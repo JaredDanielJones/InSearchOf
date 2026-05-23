@@ -61,11 +61,7 @@ export default function DashboardClient() {
     }
   }, [query]);
 
-  // Initial load
-  useEffect(() => {
-    fetchListings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount — user triggers refresh explicitly
+  // No initial load — user must search explicitly
 
   return (
     <div className="min-h-screen bg-gray-50">
