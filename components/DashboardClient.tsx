@@ -4,10 +4,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Listing, ListingsApiResponse } from "@/types/listing";
 import { subscribeBookmarks } from "@/lib/firestore";
 import type { BookmarkedListing } from "@/types/listing";
-import { DEFAULT_CITIES } from "@/lib/cities";
 import Header from "./Header";
 import SearchBar from "./SearchBar";
-import CityFilter from "./CityFilter";
 import ListingGrid from "./ListingGrid";
 import WantList from "./WantList";
 import BookmarksList from "./BookmarksList";
@@ -22,8 +20,6 @@ export default function DashboardClient() {
 
   // Search state
   const [query, setQuery] = useState("");
-  const [location, setLocation] = useState("");
-  const [selectedCities, setSelectedCities] = useState<string[]>(DEFAULT_CITIES);
 
   // Want list (active items from WantList component)
   const [activeWantList, setActiveWantList] = useState<string[]>([]);
@@ -48,12 +44,6 @@ export default function DashboardClient() {
 
     try {
       const params = new URLSearchParams();
-
-      if (location.trim()) {
-        params.set("location", location.trim());
-      } else {
-        params.set("cities", selectedCities.join(","));
-      }
 
       if (query.trim()) {
         params.set("query", query.trim());
@@ -80,7 +70,7 @@ export default function DashboardClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [query, location, selectedCities, activeWantList]);
+  }, [query, activeWantList]);
 
   // Initial load
   useEffect(() => {
@@ -108,28 +98,21 @@ export default function DashboardClient() {
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-        {/* Search + filter bar */}
+        {/* Search bar */}
         <div className="space-y-3">
           <SearchBar
             query={query}
-            location={location}
             onQueryChange={setQuery}
-            onLocationChange={setLocation}
             onSearch={fetchListings}
             isLoading={isLoading}
           />
-          <div className="flex items-center gap-2 flex-wrap">
-            <CityFilter
-              selectedCities={selectedCities}
-              onChange={setSelectedCities}
-            />
-            {/* Mobile stats */}
+          {/* Mobile stats + Bookmark panel */}
+          <div className="flex items-center">
             {lastFetchedAt && !isLoading && (
               <span className="text-xs text-gray-400 sm:hidden">
                 {listings.length} listings
               </span>
             )}
-            {/* Bookmark panel */}
             <div className="ml-auto">
               <BookmarksList />
             </div>
