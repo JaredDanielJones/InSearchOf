@@ -1,0 +1,3 @@
+PLACEHOLDER: Replace this with a real 512x512 PNG icon before packaging.
+The icon should be a solid blue square or the InSearchOf logo.
+electron-builder reads build/icon.png for Mac (.icns) and Windows (.ico) packaging.
