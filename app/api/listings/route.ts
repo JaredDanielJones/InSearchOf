@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error("[api/listings] Error:", errMsg);
-    const missingKey = !process.env.SCRAPER_API_KEY;
+    const missingKey = !process.env.ZENROWS_API_KEY && !process.env.SCRAPER_API_KEY;
     return NextResponse.json(
       {
         listings: [],
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         citiesFailed: [],
         totalCount: 0,
         error: missingKey
-          ? "SCRAPER_API_KEY is not set. Craigslist blocks cloud server IPs — add a free ScraperAPI key in your environment variables to fix this. Get one at scraperapi.com."
+          ? "ZENROWS_API_KEY is not set. Craigslist blocks cloud server IPs — add a free ZenRows key to fix this. Get one at zenrows.com."
           : `Failed to fetch listings: ${errMsg}`,
       },
       { status: 500 }

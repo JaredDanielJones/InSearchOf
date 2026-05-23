@@ -50,7 +50,7 @@ export default function ListingGrid({
   }
 
   if (error) {
-    const isKeyError = error.includes("SCRAPER_API_KEY");
+    const isKeyError = error.includes("SCRAPER_API_KEY") || error.includes("ZENROWS_API_KEY");
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <span className="text-4xl mb-4">⚠️</span>
@@ -62,17 +62,17 @@ export default function ListingGrid({
             <p>
               Craigslist blocks cloud server IPs. You need a free{" "}
               <a
-                href="https://www.scraperapi.com/"
+                href="https://www.zenrows.com/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 underline hover:text-blue-800"
               >
-                ScraperAPI
+                ZenRows
               </a>{" "}
-              key (1,000 free calls/month) to route around this.
+              key (1,000 free calls/month with residential proxies) to route around this.
             </p>
             <div className="bg-gray-100 rounded-lg p-3 text-left font-mono text-xs text-gray-700">
-              firebase apphosting:secrets:set SCRAPER_API_KEY
+              firebase apphosting:secrets:set ZENROWS_API_KEY
             </div>
             <p className="text-xs text-gray-400">
               Then redeploy — searches will work instantly.
