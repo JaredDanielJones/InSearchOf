@@ -42,13 +42,13 @@ function setCached(
 // ── URL builder ─────────────────────────────────────────────────────────────
 
 /**
- * Builds the national Craigslist "for sale" RSS URL.
+ * Builds the national Craigslist "wanted" RSS URL.
  * www.craigslist.org covers ALL US regions — big cities and small towns.
  */
 function buildNationalUrl(query: string): string {
   const params = new URLSearchParams({ format: "rss" });
   if (query.trim()) params.set("query", query.trim());
-  return `https://www.craigslist.org/search/sss?${params.toString()}`;
+  return `https://www.craigslist.org/search/wan?${params.toString()}`;
 }
 
 // ── Proxy fetch ──────────────────────────────────────────────────────────────
