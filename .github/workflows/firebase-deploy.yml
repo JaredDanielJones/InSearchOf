@@ -33,3 +33,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_INSEARCHOF_BD345 }}
           channelId: live
           projectId: insearchof-bd345
+        env:
+          FIREBASE_CLI_EXPERIMENTS: webframeworks
