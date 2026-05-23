@@ -65,26 +65,31 @@ async function fetchRss(targetUrl: string): Promise<string> {
   const scraperKey = process.env.SCRAPER_API_KEY;
 
   let fetchUrl: string;
-  const headers: Record<string, string> = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    Accept: "application/rss+xml, application/xml, text/xml, */*",
-  };
+  let fetchOptions: RequestInit;
 
   if (scraperKey) {
-    // Route through ScraperAPI to bypass Craigslist's cloud IP block
-    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}`;
+    // Route through ScraperAPI to bypass Craigslist's cloud IP block.
+    // ScraperAPI handles its own headers for Craigslist — don't override them.
+    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false`;
+    fetchOptions = {};
   } else {
     fetchUrl = targetUrl;
+    fetchOptions = {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        Accept: "application/rss+xml, application/xml, text/xml, */*",
+      },
+    };
   }
 
-  const res = await fetch(fetchUrl, { headers });
+  const res = await fetch(fetchUrl, fetchOptions);
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(
       `HTTP ${res.status} fetching RSS${scraperKey ? " via ScraperAPI" : ""}` +
-        (body ? `: ${body.slice(0, 120)}` : "")
+        (body ? `: ${body.slice(0, 200)}` : "")
     );
   }
 
