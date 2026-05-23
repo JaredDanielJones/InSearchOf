@@ -34,7 +34,7 @@ export default function Header({
               <h1 className="text-xl font-bold text-gray-900">InSearchOf</h1>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              Find what people want · Source it · Sell it
+              Find Reddit ISO/WTB posts · Source it · Sell it
             </p>
           </div>
 
