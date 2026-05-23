@@ -5,5 +5,7 @@ runConfig:
 env:
   - variable: ANTHROPIC_API_KEY
     secret: ANTHROPIC_API_KEY
+  - variable: ZENROWS_API_KEY
+    secret: ZENROWS_API_KEY
   - variable: SCRAPER_API_KEY
     secret: SCRAPER_API_KEY

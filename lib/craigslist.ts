@@ -55,24 +55,29 @@ function buildNationalUrl(query: string): string {
 
 /**
  * Craigslist blocks all cloud/datacenter IPs with a 403 "Host not in allowlist".
- * We route through ScraperAPI (free tier: 1,000 calls/month) which uses
+ * We route through ZenRows (free tier: 1,000 calls/month) which uses
  * residential IPs that Craigslist allows.
  *
- * Set SCRAPER_API_KEY in your environment variables to enable this.
- * Get a free key at: https://www.scraperapi.com/
+ * Set ZENROWS_API_KEY in your environment variables to enable this.
+ * Get a free key at: https://www.zenrows.com/
+ *
+ * Fallback: if SCRAPER_API_KEY is set instead, that will be used.
  */
 async function fetchRss(targetUrl: string): Promise<string> {
+  const zenrowsKey = process.env.ZENROWS_API_KEY;
   const scraperKey = process.env.SCRAPER_API_KEY;
 
   let fetchUrl: string;
-  let fetchOptions: RequestInit;
+  let fetchOptions: RequestInit = {};
 
-  if (scraperKey) {
-    // Route through ScraperAPI to bypass Craigslist's cloud IP block.
-    // ScraperAPI handles its own headers for Craigslist — don't override them.
-    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false&premium=true`;
-    fetchOptions = {};
+  if (zenrowsKey) {
+    // ZenRows: premium_proxy=true uses residential IPs that Craigslist allows
+    fetchUrl = `https://api.zenrows.com/v1/?apikey=${zenrowsKey}&url=${encodeURIComponent(targetUrl)}&premium_proxy=true`;
+  } else if (scraperKey) {
+    // ScraperAPI fallback (requires paid plan for Craigslist)
+    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false&ultra_premium=true`;
   } else {
+    // No proxy — will likely get 403 from Craigslist in cloud environments
     fetchUrl = targetUrl;
     fetchOptions = {
       headers: {
@@ -83,12 +88,13 @@ async function fetchRss(targetUrl: string): Promise<string> {
     };
   }
 
+  const proxyLabel = zenrowsKey ? "ZenRows" : scraperKey ? "ScraperAPI" : "direct";
   const res = await fetch(fetchUrl, fetchOptions);
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new Error(
-      `HTTP ${res.status} fetching RSS${scraperKey ? " via ScraperAPI" : ""}` +
+      `HTTP ${res.status} fetching RSS via ${proxyLabel}` +
         (body ? `: ${body.slice(0, 200)}` : "")
     );
   }
