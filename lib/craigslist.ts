@@ -55,9 +55,8 @@ function buildNationalUrl(query: string): string {
 
 /**
  * Craigslist blocks all cloud/datacenter IPs with a 403 "Host not in allowlist".
- * We route through ZenRows using their HTTP proxy endpoint, which uses
- * residential IPs that Craigslist allows. The proxy is transparent — it
- * returns raw RSS/XML unchanged (unlike their API URL which renders HTML).
+ * We route through ZenRows using their API (premium_proxy + antibot) which uses
+ * residential IPs and bypasses bot detection.
  *
  * Set ZENROWS_API_KEY in your environment variables to enable this.
  * Get a free key at: https://www.zenrows.com/
@@ -68,36 +67,25 @@ async function fetchRss(targetUrl: string): Promise<string> {
   const zenrowsKey = process.env.ZENROWS_API_KEY;
   const scraperKey = process.env.SCRAPER_API_KEY;
 
-  let proxyLabel = "direct";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let fetchOptions: any = {};
+  let fetchUrl: string;
+  let proxyLabel: string;
 
   if (zenrowsKey) {
-    // Use ZenRows as a transparent HTTP proxy — raw RSS XML passes through unchanged.
-    // The proxy URL format: http://KEY:@proxy.zenrows.com:8001
-    const { ProxyAgent } = await import("undici");
-    const proxyAgent = new ProxyAgent(
-      `http://${zenrowsKey}:@api.zenrows.com:8001`
-    );
-    fetchOptions = { dispatcher: proxyAgent };
-    proxyLabel = "ZenRows proxy";
+    // ZenRows API: premium_proxy = residential IPs, antibot = bypass bot detection
+    // Uses standard HTTPS (port 443) which works in all cloud environments
+    fetchUrl = `https://api.zenrows.com/v1/?apikey=${zenrowsKey}&url=${encodeURIComponent(targetUrl)}&premium_proxy=true&antibot=true`;
+    proxyLabel = "ZenRows";
   } else if (scraperKey) {
     // ScraperAPI fallback (requires paid plan for Craigslist protected domains)
-    fetchOptions = {};
-    targetUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false&ultra_premium=true`;
+    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false&ultra_premium=true`;
     proxyLabel = "ScraperAPI";
   } else {
     // No proxy — will likely get 403 from Craigslist in cloud environments
-    fetchOptions = {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        Accept: "application/rss+xml, application/xml, text/xml, */*",
-      },
-    };
+    fetchUrl = targetUrl;
+    proxyLabel = "direct";
   }
 
-  const res = await fetch(targetUrl, fetchOptions);
+  const res = await fetch(fetchUrl);
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
