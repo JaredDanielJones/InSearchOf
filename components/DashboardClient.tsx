@@ -7,7 +7,6 @@ import type { BookmarkedListing } from "@/types/listing";
 import Header from "./Header";
 import SearchBar from "./SearchBar";
 import ListingGrid from "./ListingGrid";
-import WantList from "./WantList";
 import BookmarksList from "./BookmarksList";
 
 export default function DashboardClient() {
@@ -16,13 +15,9 @@ export default function DashboardClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<Date | null>(null);
-  const [aiFiltered, setAiFiltered] = useState(false);
 
   // Search state
   const [query, setQuery] = useState("");
-
-  // Want list (active items from WantList component)
-  const [activeWantList, setActiveWantList] = useState<string[]>([]);
 
   // Bookmarks (real-time from Firestore)
   const [bookmarks, setBookmarks] = useState<BookmarkedListing[]>([]);
@@ -44,13 +39,8 @@ export default function DashboardClient() {
 
     try {
       const params = new URLSearchParams();
-
       if (query.trim()) {
         params.set("query", query.trim());
-      }
-
-      if (activeWantList.length > 0) {
-        params.set("wantList", activeWantList.join("||"));
       }
 
       const res = await fetch(`/api/listings?${params.toString()}`);
@@ -61,7 +51,6 @@ export default function DashboardClient() {
         setListings([]);
       } else {
         setListings(data.listings);
-        setAiFiltered(data.aiFiltered);
         setLastFetchedAt(new Date(data.fetchedAt));
       }
     } catch {
@@ -70,7 +59,7 @@ export default function DashboardClient() {
     } finally {
       setIsLoading(false);
     }
-  }, [query, activeWantList]);
+  }, [query]);
 
   // Initial load
   useEffect(() => {
@@ -78,21 +67,12 @@ export default function DashboardClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount — user triggers refresh explicitly
 
-  // Re-fetch when want list changes (only if we already have data)
-  useEffect(() => {
-    if (lastFetchedAt !== null) {
-      fetchListings();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWantList]);
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
         isLoading={isLoading}
         totalCount={listings.length}
         lastFetchedAt={lastFetchedAt}
-        aiFiltered={aiFiltered}
         onRefresh={fetchListings}
       />
 
@@ -118,25 +98,14 @@ export default function DashboardClient() {
           </div>
         </div>
 
-        {/* Main content: sidebar + grid */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Want List sidebar */}
-          <div className="lg:w-72 shrink-0">
-            <WantList onWantListChange={setActiveWantList} />
-          </div>
-
-          {/* Listings grid */}
-          <div className="flex-1 min-w-0">
-            <ListingGrid
-              listings={listings}
-              isLoading={isLoading}
-              bookmarkedIds={bookmarkedIds}
-              aiFiltered={aiFiltered}
-              error={error}
-              onBookmarkChange={() => {}} // Firestore subscription handles updates
-            />
-          </div>
-        </div>
+        {/* Listings grid */}
+        <ListingGrid
+          listings={listings}
+          isLoading={isLoading}
+          bookmarkedIds={bookmarkedIds}
+          error={error}
+          onBookmarkChange={() => {}} // Firestore subscription handles updates
+        />
       </div>
     </div>
   );

@@ -125,7 +125,7 @@ function generateId(cityKey: string, link: string): string {
 // ── National fetch ───────────────────────────────────────────────────────────
 
 /**
- * Fetches "wanted" listings from Craigslist's national search.
+ * Fetches "for sale" listings from Craigslist's national search.
  * One request covers all US markets — from major metros to small towns.
  *
  * Requires SCRAPER_API_KEY env var to bypass Craigslist's cloud IP block.
@@ -140,38 +140,35 @@ export async function fetchAllCities(
 
   const url = buildNationalUrl(query);
 
-  try {
-    // Fetch raw RSS text (via ScraperAPI proxy if key is set)
-    const rssText = await fetchRss(url);
+  // Fetch raw RSS text (via ScraperAPI proxy if key is set)
+  // Errors are intentionally NOT caught here — they bubble up to the route
+  // handler which converts them into a user-friendly error response.
+  const rssText = await fetchRss(url);
 
-    // Parse the RSS string
-    const feed = await parser.parseString(rssText);
+  // Parse the RSS string
+  const feed = await parser.parseString(rssText);
 
-    const listings: Listing[] = (feed.items ?? []).map((item) => {
-      const { key, label } = extractCityFromUrl(item.link ?? "");
-      return {
-        id: generateId(key, item.link ?? ""),
-        title: item.title?.trim() ?? "(no title)",
-        link: item.link ?? "",
-        description: stripHtml(item.content ?? item.contentSnippet ?? ""),
-        pubDate: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
-        city: key,
-        cityLabel: label,
-      };
-    });
+  const listings: Listing[] = (feed.items ?? []).map((item) => {
+    const { key, label } = extractCityFromUrl(item.link ?? "");
+    return {
+      id: generateId(key, item.link ?? ""),
+      title: item.title?.trim() ?? "(no title)",
+      link: item.link ?? "",
+      description: stripHtml(item.content ?? item.contentSnippet ?? ""),
+      pubDate: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
+      city: key,
+      cityLabel: label,
+    };
+  });
 
-    // Sort newest first
-    listings.sort(
-      (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
-    );
+  // Sort newest first
+  listings.sort(
+    (a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime()
+  );
 
-    const result = { listings, failed: [] };
-    setCached(cacheKey, result);
-    return result;
-  } catch (err) {
-    console.error("[craigslist] Failed to fetch national listings:", err);
-    return { listings: [], failed: ["national"] };
-  }
+  const result = { listings, failed: [] };
+  setCached(cacheKey, result);
+  return result;
 }
 
 export { DEFAULT_CITIES, VALID_CITY_KEYS } from "./cities";

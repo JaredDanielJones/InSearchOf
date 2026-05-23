@@ -9,14 +9,12 @@ import { addBookmark, removeBookmark } from "@/lib/firestore";
 interface ListingCardProps {
   listing: Listing;
   isBookmarked: boolean;
-  aiFiltered?: boolean;
   onBookmarkChange?: () => void;
 }
 
 export default function ListingCard({
   listing,
   isBookmarked,
-  aiFiltered = false,
   onBookmarkChange,
 }: ListingCardProps) {
   const [bookmarked, setBookmarked] = useState(isBookmarked);
@@ -61,13 +59,6 @@ export default function ListingCard({
             {city?.region.charAt(0).toUpperCase() + (city?.region.slice(1) ?? "")} •{" "}
             {listing.cityLabel}
           </span>
-
-          {/* AI match badge */}
-          {aiFiltered && (
-            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-              ★ Want List Match
-            </span>
-          )}
 
           {/* NEW badge */}
           {postIsNew && (

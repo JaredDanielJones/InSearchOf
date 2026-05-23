@@ -14,21 +14,11 @@ export interface BookmarkedListing extends Listing {
   bookmarkedAt: Timestamp | string;
 }
 
-export interface WantListItem {
-  id: string; // Firestore auto-ID
-  item: string; // e.g. "vintage lawnmower"
-  category?: string; // optional label e.g. "yard equipment"
-  active: boolean; // toggle on/off without deleting
-  addedAt: Timestamp | string;
-}
-
 export interface ListingsApiResponse {
   listings: Listing[];
   fetchedAt: string;
   citiesRequested: string[];
   citiesFailed: string[];
   totalCount: number;
-  aiFiltered: boolean;
-  wantListUsed: string[];
   error?: string;
 }

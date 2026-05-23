@@ -4,7 +4,6 @@ interface HeaderProps {
   isLoading: boolean;
   totalCount: number;
   lastFetchedAt: Date | null;
-  aiFiltered: boolean;
   onRefresh: () => void;
 }
 
@@ -12,7 +11,6 @@ export default function Header({
   isLoading,
   totalCount,
   lastFetchedAt,
-  aiFiltered,
   onRefresh,
 }: HeaderProps) {
 
@@ -33,12 +31,7 @@ export default function Header({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-2xl">🔍</span>
-              <h1 className="text-xl font-bold text-gray-900">ISO Dashboard</h1>
-              {aiFiltered && (
-                <span className="text-xs bg-purple-100 text-purple-700 font-semibold px-2 py-0.5 rounded-full">
-                  🤖 AI Filtered
-                </span>
-              )}
+              <h1 className="text-xl font-bold text-gray-900">InSearchOf</h1>
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
               Find what people want · Source it · Sell it

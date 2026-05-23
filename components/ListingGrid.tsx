@@ -7,7 +7,6 @@ interface ListingGridProps {
   listings: Listing[];
   isLoading: boolean;
   bookmarkedIds: Set<string>;
-  aiFiltered: boolean;
   error?: string | null;
   onBookmarkChange?: () => void;
 }
@@ -37,7 +36,6 @@ export default function ListingGrid({
   listings,
   isLoading,
   bookmarkedIds,
-  aiFiltered,
   error,
   onBookmarkChange,
 }: ListingGridProps) {
@@ -67,9 +65,7 @@ export default function ListingGrid({
         <span className="text-5xl mb-4">🔍</span>
         <h3 className="font-semibold text-gray-800 mb-1">No listings found</h3>
         <p className="text-sm text-gray-500 max-w-md">
-          {aiFiltered
-            ? "Claude didn't find any matches for your want list in these cities. Try adding more items or broadening your search."
-            : "Try a different keyword, location, or select more cities."}
+          Try a different keyword or search term.
         </p>
       </div>
     );
@@ -82,7 +78,6 @@ export default function ListingGrid({
           key={listing.id}
           listing={listing}
           isBookmarked={bookmarkedIds.has(listing.id)}
-          aiFiltered={aiFiltered}
           onBookmarkChange={onBookmarkChange}
         />
       ))}
