@@ -28,6 +28,13 @@ export default defineConfig({
     resolve: {
       alias: { '@renderer': resolve(__dirname, 'src') }
     },
-    plugins: [react()]
+    plugins: [react()],
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(__dirname, 'src/index.html')
+        }
+      }
+    }
   }
 })
