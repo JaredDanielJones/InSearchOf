@@ -1,12 +1,19 @@
-name: Deploy to Firebase App Hosting
+name: Validate build
+
+# Firebase App Hosting is connected to this repo via the Firebase Console and
+# automatically builds + deploys on every push to main. This workflow runs
+# a local build first to catch errors in CI before App Hosting starts its build.
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  build_and_deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,21 +28,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Validate the build locally before triggering App Hosting deployment.
-      # App Hosting builds from source on Google infrastructure, so this step
-      # catches errors early without producing the actual deployment artifact.
-      - name: Validate build
+      - name: Build Next.js app
         run: npm run build
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      # Firebase App Hosting — builds & deploys the Next.js app on Cloud Run.
-      # Requires the App Hosting backend to be created first in the Firebase Console:
-      #   https://console.firebase.google.com/project/insearchof-bd345/apphosting
-      # The backendId below must match the ID you chose when creating the backend.
-      - name: Deploy to Firebase App Hosting
-        uses: FirebaseExtended/action-apphosting-deploy@v0
-        with:
-          projectId: insearchof-bd345
-          backendId: insearchof-bd345
-          serviceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_INSEARCHOF_BD345 }}
