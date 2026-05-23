@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("[api/listings] Error:", err);
+    const missingKey = !process.env.SCRAPER_API_KEY;
     return NextResponse.json(
       {
         listings: [],
@@ -55,7 +56,9 @@ export async function GET(request: NextRequest) {
         totalCount: 0,
         aiFiltered: false,
         wantListUsed: [],
-        error: "Failed to fetch listings. Please try again.",
+        error: missingKey
+          ? "SCRAPER_API_KEY is not set. Craigslist blocks cloud server IPs — add a free ScraperAPI key in your environment variables to fix this. Get one at scraperapi.com."
+          : "Failed to fetch listings. Please try again.",
       },
       { status: 500 }
     );

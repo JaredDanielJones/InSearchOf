@@ -6,11 +6,7 @@ import { stripHtml } from "./utils";
 // ── Parser setup ────────────────────────────────────────────────────────────
 
 const parser = new Parser({
-  timeout: 15000, // Longer timeout for national search
-  headers: {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-  },
+  timeout: 20000,
   customFields: {
     item: [["dc:date", "dcDate"]],
   },
@@ -46,13 +42,53 @@ function setCached(
 // ── URL builder ─────────────────────────────────────────────────────────────
 
 /**
- * Builds the national Craigslist for-sale RSS URL.
- * Using www.craigslist.org covers ALL US regions — big cities and small towns.
+ * Builds the national Craigslist "wanted" RSS URL.
+ * www.craigslist.org covers ALL US regions — big cities and small towns.
  */
 function buildNationalUrl(query: string): string {
   const params = new URLSearchParams({ format: "rss" });
   if (query.trim()) params.set("query", query.trim());
-  return `https://www.craigslist.org/search/sss?${params.toString()}`;
+  return `https://www.craigslist.org/search/wan?${params.toString()}`;
+}
+
+// ── Proxy fetch ──────────────────────────────────────────────────────────────
+
+/**
+ * Craigslist blocks all cloud/datacenter IPs with a 403 "Host not in allowlist".
+ * We route through ScraperAPI (free tier: 1,000 calls/month) which uses
+ * residential IPs that Craigslist allows.
+ *
+ * Set SCRAPER_API_KEY in your environment variables to enable this.
+ * Get a free key at: https://www.scraperapi.com/
+ */
+async function fetchRss(targetUrl: string): Promise<string> {
+  const scraperKey = process.env.SCRAPER_API_KEY;
+
+  let fetchUrl: string;
+  const headers: Record<string, string> = {
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept: "application/rss+xml, application/xml, text/xml, */*",
+  };
+
+  if (scraperKey) {
+    // Route through ScraperAPI to bypass Craigslist's cloud IP block
+    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}`;
+  } else {
+    fetchUrl = targetUrl;
+  }
+
+  const res = await fetch(fetchUrl, { headers });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(
+      `HTTP ${res.status} fetching RSS${scraperKey ? " via ScraperAPI" : ""}` +
+        (body ? `: ${body.slice(0, 120)}` : "")
+    );
+  }
+
+  return res.text();
 }
 
 // ── City extraction ──────────────────────────────────────────────────────────
@@ -89,8 +125,10 @@ function generateId(cityKey: string, link: string): string {
 // ── National fetch ───────────────────────────────────────────────────────────
 
 /**
- * Fetches for-sale listings from Craigslist's national search.
+ * Fetches "wanted" listings from Craigslist's national search.
  * One request covers all US markets — from major metros to small towns.
+ *
+ * Requires SCRAPER_API_KEY env var to bypass Craigslist's cloud IP block.
  */
 export async function fetchAllCities(
   _cityKeys: string[], // kept for API compatibility; national search ignores cities
@@ -103,7 +141,11 @@ export async function fetchAllCities(
   const url = buildNationalUrl(query);
 
   try {
-    const feed = await parser.parseURL(url);
+    // Fetch raw RSS text (via ScraperAPI proxy if key is set)
+    const rssText = await fetchRss(url);
+
+    // Parse the RSS string
+    const feed = await parser.parseString(rssText);
 
     const listings: Listing[] = (feed.items ?? []).map((item) => {
       const { key, label } = extractCityFromUrl(item.link ?? "");
@@ -111,9 +153,7 @@ export async function fetchAllCities(
         id: generateId(key, item.link ?? ""),
         title: item.title?.trim() ?? "(no title)",
         link: item.link ?? "",
-        description: stripHtml(
-          item.content ?? item.contentSnippet ?? ""
-        ),
+        description: stripHtml(item.content ?? item.contentSnippet ?? ""),
         pubDate: item.isoDate ?? item.pubDate ?? new Date().toISOString(),
         city: key,
         cityLabel: label,
