@@ -10,62 +10,10 @@ import {
   query,
   serverTimestamp,
   setDoc,
-  updateDoc,
   orderBy,
-  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import type { BookmarkedListing, Listing, WantListItem } from "@/types/listing";
-
-// ── Want List ──────────────────────────────────────────────────────────────
-
-export async function getActiveWantList(): Promise<WantListItem[]> {
-  const q = query(
-    collection(db, "wantList"),
-    where("active", "==", true),
-    orderBy("addedAt", "asc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as WantListItem)
-  );
-}
-
-export async function getAllWantList(): Promise<WantListItem[]> {
-  const q = query(collection(db, "wantList"), orderBy("addedAt", "asc"));
-  const snap = await getDocs(q);
-  return snap.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as WantListItem)
-  );
-}
-
-export function subscribeWantList(
-  callback: (items: WantListItem[]) => void
-): () => void {
-  const q = query(collection(db, "wantList"), orderBy("addedAt", "asc"));
-  return onSnapshot(q, (snap) => {
-    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() } as WantListItem)));
-  });
-}
-
-export async function addWantListItem(item: string): Promise<void> {
-  await addDoc(collection(db, "wantList"), {
-    item: item.trim(),
-    active: true,
-    addedAt: serverTimestamp(),
-  });
-}
-
-export async function toggleWantListItem(
-  id: string,
-  active: boolean
-): Promise<void> {
-  await updateDoc(doc(db, "wantList", id), { active });
-}
-
-export async function deleteWantListItem(id: string): Promise<void> {
-  await deleteDoc(doc(db, "wantList", id));
-}
+import type { BookmarkedListing, Listing } from "@/types/listing";
 
 // ── Bookmarks ──────────────────────────────────────────────────────────────
 
@@ -97,4 +45,12 @@ export async function removeBookmark(id: string): Promise<void> {
 export async function getBookmarkedIds(): Promise<Set<string>> {
   const snap = await getDocs(collection(db, "bookmarks"));
   return new Set(snap.docs.map((d) => d.id));
+}
+
+// Kept for future use — add new item to a collection
+export async function addItem(collectionName: string, data: Record<string, unknown>): Promise<void> {
+  await addDoc(collection(db, collectionName), {
+    ...data,
+    addedAt: serverTimestamp(),
+  });
 }
