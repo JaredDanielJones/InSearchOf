@@ -50,11 +50,37 @@ export default function ListingGrid({
   }
 
   if (error) {
+    const isKeyError = error.includes("SCRAPER_API_KEY");
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <span className="text-4xl mb-4">⚠️</span>
-        <h3 className="font-semibold text-gray-800 mb-1">Something went wrong</h3>
-        <p className="text-sm text-gray-500 max-w-md">{error}</p>
+        <h3 className="font-semibold text-gray-800 mb-2">
+          {isKeyError ? "ScraperAPI key needed" : "Something went wrong"}
+        </h3>
+        {isKeyError ? (
+          <div className="text-sm text-gray-500 max-w-md space-y-3">
+            <p>
+              Craigslist blocks cloud server IPs. You need a free{" "}
+              <a
+                href="https://www.scraperapi.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 underline hover:text-blue-800"
+              >
+                ScraperAPI
+              </a>{" "}
+              key (1,000 free calls/month) to route around this.
+            </p>
+            <div className="bg-gray-100 rounded-lg p-3 text-left font-mono text-xs text-gray-700">
+              firebase apphosting:secrets:set SCRAPER_API_KEY
+            </div>
+            <p className="text-xs text-gray-400">
+              Then redeploy — searches will work instantly.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 max-w-md">{error}</p>
+        )}
       </div>
     );
   }
