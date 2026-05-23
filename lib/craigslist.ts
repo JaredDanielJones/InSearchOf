@@ -70,7 +70,7 @@ async function fetchRss(targetUrl: string): Promise<string> {
   if (scraperKey) {
     // Route through ScraperAPI to bypass Craigslist's cloud IP block.
     // ScraperAPI handles its own headers for Craigslist — don't override them.
-    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false`;
+    fetchUrl = `https://api.scraperapi.com/?api_key=${scraperKey}&url=${encodeURIComponent(targetUrl)}&render=false&premium=true`;
     fetchOptions = {};
   } else {
     fetchUrl = targetUrl;
